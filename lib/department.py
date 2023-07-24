@@ -36,9 +36,9 @@ class Department:
         CONN.commit()
 
     def save(self):
-        """ Insert a new row with the name and location values of the current Department instance.
+        """ Insert a new row with the name and location values of the current Department object.
         Update object id attribute using the primary key value of new row.
-        """
+        Save the object in local dictionary using table row's PK as dictionary key"""
         sql = """
             INSERT INTO departments (name, location)
             VALUES (?, ?)
@@ -48,6 +48,7 @@ class Department:
         CONN.commit()
 
         self.id = CURSOR.lastrowid
+        Department.all[self.id] = self
 
     @classmethod
     def create(cls, name, location):
@@ -86,8 +87,8 @@ class Department:
             # ensure attributes match row values in case local instance was modified
             department.name = row[1]
             department.location = row[2]
+        # not in dictionary, create new instance and add to dictionary
         else:
-            # not in dictionary, create new instance and add to dictionary
             department = cls(row[1], row[2])
             department.id = row[0]
             Department.all[department.id] = department
@@ -128,3 +129,17 @@ class Department:
 
         row = CURSOR.execute(sql, (name,)).fetchone()
         return cls.instance_from_db(row) if row else None
+
+    def employees(self):
+        """Return list of employees associated with current department"""
+        from employee import Employee
+        sql = """
+            SELECT * FROM employees
+            WHERE department_id = ?
+        """
+        CURSOR.execute(sql, (self.id,),)
+
+        rows = CURSOR.fetchall()
+        return [
+            Employee.instance_from_db(row) for row in rows
+        ]
